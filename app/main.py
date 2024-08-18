@@ -7,6 +7,8 @@ def handle_client(client_socket):
     request_data = data.decode().split("\r\n")
     request_line = request_data[0]
     user_agent = next((request.split(": ")[1] for request in request_data if request.startswith("User-Agent:")), "")
+    accept_encoding = next((request.split(": ")[1] for request in request_data if request.startswith("Accept-Encoding:")), "")
+    content_encoding = ["gzip"] 
 
     print(request_data)
 
@@ -15,7 +17,10 @@ def handle_client(client_socket):
     if path == "/" and method == "GET":
         response = "HTTP/1.1 200 OK\r\n\r\n"
     elif path.startswith("/echo/") and method == "GET":
-        response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(path[6:])}\r\n\r\n{path[6:]}"
+        if accept_encoding != "" and accept_encoding in content_encoding:
+            response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Encoding: {accept_encoding}\r\nContent-Length: {len(path[6:])}\r\n\r\n{path[6:]}"
+        else:
+            response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(path[6:])}\r\n\r\n{path[6:]}"
     elif path == "/user-agent" and method == "GET":
         response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(user_agent)}\r\n\r\n{user_agent}"
     elif path.startswith("/files/") and method == "GET":
