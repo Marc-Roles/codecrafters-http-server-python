@@ -7,8 +7,11 @@ def handle_client(client_socket):
     request_data = data.decode().split("\r\n")
     request_line = request_data[0]
     user_agent = next((request.split(": ")[1] for request in request_data if request.startswith("User-Agent:")), "")
-    accept_encoding = next((request.split(": ")[1] for request in request_data if request.startswith("Accept-Encoding:")), "")
-    content_encoding = ["gzip"] 
+    accept_encoding_data = [request.split(": ")[1] for request in request_data if request.startswith("Accept-Encoding:")]
+    accept_encoding = [""]
+    if len(accept_encoding_data) != 0:
+        accept_encoding  = accept_encoding_data[0].split(", ")
+    content_encoding = ["gzip"]     # Add more content encoding types here
 
     print(request_data)
 
@@ -17,8 +20,9 @@ def handle_client(client_socket):
     if path == "/" and method == "GET":
         response = "HTTP/1.1 200 OK\r\n\r\n"
     elif path.startswith("/echo/") and method == "GET":
-        if accept_encoding != "" and accept_encoding in content_encoding:
-            response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Encoding: {accept_encoding}\r\nContent-Length: {len(path[6:])}\r\n\r\n{path[6:]}"
+        if any(encoding in content_encoding for encoding in accept_encoding): 
+            encoding_to_use = next((encoding for encoding in accept_encoding if encoding in content_encoding), None)
+            response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Encoding: {encoding_to_use}\r\nContent-Length: {len(path[6:])}\r\n\r\n{path[6:]}"
         else:
             response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(path[6:])}\r\n\r\n{path[6:]}"
     elif path == "/user-agent" and method == "GET":
