@@ -8,6 +8,8 @@ def handle_client(client_socket):
     request_line = request_data[0]
     user_agent = next((request.split(": ")[1] for request in request_data if request.startswith("User-Agent:")), "")
 
+    print(request_data)
+
     method, path, http_version = request_line.split()
 
     if path == "/" and method == "GET":
@@ -24,6 +26,15 @@ def handle_client(client_socket):
                 response = f"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {len(content)}\r\n\r\n{content}"
         except FileNotFoundError:
             response = "HTTP/1.1 404 Not Found\r\n\r\n"
+    elif path.startswith("/files/") and method == "POST":
+        directory = sys.argv[2]
+        try:
+            with open(f"{directory}/{path[7:]}", "w") as file:
+                file.write(request_data[max(1, len(request_data) - 1)])
+                file.close()
+                response = "HTTP/1.1 201 Created\r\n\r\n"
+        except:
+            response = "HTTP/1.1 500 Internal Server Error\r\n\r\n"
     else:
         response = "HTTP/1.1 404 Not Found\r\n\r\n"
 
