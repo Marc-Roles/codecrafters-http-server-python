@@ -2,6 +2,7 @@ import socket
 import threading
 import sys
 import gzip
+import binascii
 
 def handle_client(client_socket):
     data = client_socket.recv(1024)
@@ -23,8 +24,23 @@ def handle_client(client_socket):
     elif path.startswith("/echo/") and method == "GET":
         if any(encoding in content_encoding for encoding in accept_encoding): 
             encoding_to_use = next((encoding for encoding in accept_encoding if encoding in content_encoding), None)
-            compressed_body = gzip.compress(path[6:].encode())
-            response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Encoding: {encoding_to_use}\r\nContent-Length: {len(compressed_body)}\r\n\r\n{compressed_body.decode()}"
+
+            body = path[6:].encode("utf-8")
+
+            compressed_data = gzip.compress(body)
+            print(path[6:])
+            response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Encoding: {encoding_to_use}\r\nContent-Length: {len(compressed_data)}\r\n\r\n{compressed_data}"
+            print(response)
+
+            response_headers = (
+                f"HTTP/1.1 200 OK\r\n"
+                f"Content-Type: text/plain\r\n"
+                f"Content-Encoding: {encoding_to_use}\r\n"
+                f"Content-Length: {len(compressed_data)}\r\n\r\n"
+            )
+            client_socket.sendall(response_headers.encode("utf-8"))
+            client_socket.sendall(compressed_data)  # Send binary data as-is
+            client_socket.close()
         else:
             response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(path[6:])}\r\n\r\n{path[6:]}"
     elif path == "/user-agent" and method == "GET":
