@@ -1,5 +1,6 @@
 import socket
 import threading
+import sys
 
 def handle_client(client_socket):
     data = client_socket.recv(1024)
@@ -15,6 +16,14 @@ def handle_client(client_socket):
         response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(path[6:])}\r\n\r\n{path[6:]}"
     elif path == "/user-agent" and method == "GET":
         response = f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {len(user_agent)}\r\n\r\n{user_agent}"
+    elif path.startswith("/files/") and method == "GET":
+        directory = sys.argv[2]
+        try:
+            with open(f"{directory}/{path[7:]}", "r") as file:
+                content = file.read()
+                response = f"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {len(content)}\r\n\r\n{content}"
+        except FileNotFoundError:
+            response = "HTTP/1.1 404 Not Found\r\n\r\n"
     else:
         response = "HTTP/1.1 404 Not Found\r\n\r\n"
 
